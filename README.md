@@ -38,9 +38,10 @@ Looking inside the [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.ht
 
 ### Read with FT232H 
 
-The 25Q80DVSIG is very close to the 
+The 25Q80DVSIG is very close to the EN24A201S and condencator so getting and SOTC 8 testclip is impossible. 
+
 ```
-flashrom -p ft2232_spi:type=232H -c MX25L6406E/MX25L6408E -r oldbios.bin
+flashrom -p ft2232_spi:type=232H -c W25Q80.V -r oldbios.bin
 ```
 
 ## Hardware 
