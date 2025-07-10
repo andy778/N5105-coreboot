@@ -13,7 +13,17 @@ Investgigate if it's possible to have coreboot on this Topton N5105 firewall as 
 
 ## Reverse engineering 
 From the [top](images/N5105_top.png) picture one get out the serial number [1338NP-12](https://www.bkipc.com/en/product/BKHD-1338NP-12-4L.html) and that gives it's actually BKHD that it's the manufacturer. 
-Looks like they have a [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html)
+
+Looks like they have a [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) but they have only made on version of it and it's the same I have installed [AMI BIOS 2.22.1282](images/ami_bios.png)
+
+### Update / Read flash 
+Tried if flashrom that one use for [Protectli](https://teklager.se/en/knowledge-base/apu-bios-upgrade/) but this seems to complain
+
+pkg install -y flashrom
+flashrom -p internal -r oldbios.bin 
+
+
+Looking inside the [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) one see thay have made a Fpt.efi binary and the actual 16Mb bios is inside 1.bin and 1.nsh is a script using both files   
 
 
 ## Hardware 
