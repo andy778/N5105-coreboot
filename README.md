@@ -16,7 +16,8 @@ From the [top](images/N5105_top.png) picture one get out the serial number [1338
 
 Looks like they have a [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) but they have only made on version of it and it's the same I have installed [AMI BIOS 2.22.1282](images/ami_bios.png)
 
-### Update / Read flash 
+## Read flash 
+### Read with flashrom from os
 Tried if flashrom that one use for [Protectli](https://teklager.se/en/knowledge-base/apu-bios-upgrade/) but this seems to complain
 
 ```
@@ -32,14 +33,21 @@ Found chipset "Intel Jasper Lake".
 Enabling flash write... pcilib: This access method is not supported.
 ```
 
-
+### Read with efi tools
 Looking inside the [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) one see thay have made a Fpt.efi binary and the actual 16Mb bios is inside 1.bin and 1.nsh is a script using both files   
 
+### Read with FT232H 
+
+The 25Q80DVSIG is very close to the 
+```
+flashrom -p ft2232_spi:type=232H -c MX25L6406E/MX25L6408E -r oldbios.bin
+```
 
 ## Hardware 
 
 ## Datasheets 
-| Description | IC           |
-| ---         |---           |
-| flash       |4 x [Winbond 25Q28JVSO](https://www.alldatasheet.com/html-pdf/932084/WINBOND/25Q80DVSIG/2115/7/25Q80DVSIG.html)      |
-| flash       |1 x [Winbond 25Q80DVSIG](https://www.alldatasheet.com/datasheet-pdf/pdf/932084/WINBOND/25Q80DVSIG.html)              |
+| Description            | IC           |
+| ---                    |---           |
+| flash                  |4 x [Winbond 25Q28JVSO](https://www.alldatasheet.com/html-pdf/932084/WINBOND/25Q80DVSIG/2115/7/25Q80DVSIG.html)      |
+| flash                  |1 x [Winbond 25Q80DVSIG](https://www.alldatasheet.com/datasheet-pdf/pdf/932084/WINBOND/25Q80DVSIG.html)              |
+| isolation transformers |4 x EN24A201S|
