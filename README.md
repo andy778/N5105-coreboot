@@ -15,3 +15,9 @@ Investgigate if it's possible to have coreboot on this Topton N5105 firewall as 
 
 
 ## Hardware 
+
+## Datasheets 
+| Description | IC           |
+| ---         |---           |
+| flash       |4 x [Winbond 25Q28JVSO](https://www.alldatasheet.com/html-pdf/932084/WINBOND/25Q80DVSIG/2115/7/25Q80DVSIG.html)      |
+| flash       |1 x [Winbond 25Q80DVSIG](https://www.alldatasheet.com/datasheet-pdf/pdf/932084/WINBOND/25Q80DVSIG.html)              |
