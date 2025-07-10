@@ -12,6 +12,7 @@ Investgigate if it's possible to have coreboot on this Topton N5105 firewall as 
 
 
 ## Reverse engineering 
+From the [top](images/N5105_top.png) picture one get out the serial number [1338NP-12](https://www.bkipc.com/en/product/BKHD-1338NP-12-4L.html) and that gives it's actually that it's the manufacturer. 
 
 
 ## Hardware 
