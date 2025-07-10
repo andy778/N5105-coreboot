@@ -19,8 +19,18 @@ Looks like they have a [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4
 ### Update / Read flash 
 Tried if flashrom that one use for [Protectli](https://teklager.se/en/knowledge-base/apu-bios-upgrade/) but this seems to complain
 
+```
+# Install flashrom
 pkg install -y flashrom
-flashrom -p internal -r oldbios.bin 
+
+flashrom -p internal:boardmismatch=force -r oldbios.bin
+flashrom v1.3.0 on FreeBSD 14.2-RELEASE-p3 (amd64)
+flashrom is free software, get the source code at https://flashrom.org
+Using clock_gettime for delay loops (clk_id: 4, resolution: 1ns).
+No DMI table found.
+Found chipset "Intel Jasper Lake".
+Enabling flash write... pcilib: This access method is not supported.
+```
 
 
 Looking inside the [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) one see thay have made a Fpt.efi binary and the actual 16Mb bios is inside 1.bin and 1.nsh is a script using both files   
