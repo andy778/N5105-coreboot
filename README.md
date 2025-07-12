@@ -1,27 +1,26 @@
 # N5105-coreboot
-Investigate if it's possible to have coreboot bios on Topton N5105 to remove all toughts of suspicios software [N5105 Soft Router 4x 2.5G i226 LAN](https://www.toptonpc.com/product/12th-gen-intel-n100-firewall-computer-n6000-n5105-n5100-soft-router-4x-2-5g-i226-lan-industrial-fanless-mini-pc-pfsense-pve-esxi/?_gl=1*1akq4mb*_up*MQ..*_ga*MTYxMTY3ODA0My4xNzUyMTYzOTI1*_ga_5D4NM9G62C*czE3NTIxNjM5MjIkbzEkZzEkdDE3NTIxNjM5MjgkajU0JGwwJGgw*_ga_F8C2ET9T2F*czE3NTIxNjM5MjIkbzEkZzEkdDE3NTIxNjM5MjkkajUzJGwwJGgyMDgxMTgwOTM)
+Investigate if it's possible to have coreboot BIOS on Topton N5105 to remove all thoughts of suspicious software [N5105 Soft Router 4x 2.5G i226 LAN](https://www.toptonpc.com/product/12th-gen-intel-n100-firewall-computer-n6000-n5105-n5100-soft-router-4x-2-5g-i226-lan-industrial-fanless-mini-pc-pfsense-pve-esxi/?_gl=1*1akq4mb*_up*MQ..*_ga*MTYxMTY3ODA0My4xNzUyMTYzOTI1*_ga_5D4NM9G62C*czE3NTIxNjM5MjIkbzEkZzEkdDE3NTIxNjM5MjgkajU0JGwwJGgw*_ga_F8C2ET9T2F*czE3NTIxNjM5MjIkbzEkZzEkdDE3NTIxNjM5MjkkajUzJGwwJGgyMDgxMTgwOTM)
 
 ## Hypothesis 
-Investgigate if it's possible to have coreboot on this Topton N5105 firewall as latest coreboot release [25.06](https://blogs.coreboot.org/blog/2025/07/04/announcing-the-coreboot-release-25-06/) mentions [Topton](https://doc.coreboot.org/mainboard/topton/adl/x2f-n100.html),  CWWK CW-ADL-4L-V1.0 and CW-ADLNTB-1C2L-V3.0
+Investigate if it's possible to have coreboot on this Topton N5105 firewall as the latest coreboot release [25.06](https://blogs.coreboot.org/blog/2025/07/04/announcing-the-coreboot-release-25-06/) mentions [Topton](https://doc.coreboot.org/mainboard/topton/adl/x2f-n100.html), CWWK CW-ADL-4L-V1.0 and CW-ADLNTB-1C2L-V3.0
 
 * ~~Add pictures of the motherboard~~ Done
-* ~~Search on internet if somone have done anything for this alreday~~ No
-* ~~Does there exist any bios update for this firewall~~ No 
-* ~~What flash chipsets are used can I read them with the equipment I have~~ Maybe 
-* Can one figure out settings for coreboot with binwalk, ghidra, ...
-
+* ~~Search on the internet if someone has done anything for this already~~ No
+* ~~Does there exist any BIOS update for this firewall~~ No 
+* ~~What flash chipsets are used? Can I read them with the equipment I have?~~ Maybe 
+* Can one figure out settings for coreboot with binwalk, Ghidra, ...
 
 ## Reverse engineering 
-From the [top](images/N5105_top.png) picture one get out the serial number [1338NP-12](https://www.bkipc.com/en/product/BKHD-1338NP-12-4L.html) and that gives it's actually BKHD that it's the manufacturer. 
+From the [top](images/N5105_top.png) picture one gets the serial number [1338NP-12](https://www.bkipc.com/en/product/BKHD-1338NP-12-4L.html), and that shows it's actually BKHD that is the manufacturer. 
 
-Looks like they have a [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) but they have only made on version of it and it's the same I have installed [AMI BIOS 2.22.1282](images/ami_bios.png)
+It looks like they have a [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html), but they have only made one version of it, and it's the same I have installed [AMI BIOS 2.22.1282](images/ami_bios.png).
 
 ## Read flash 
 ### Read with flashrom with [OPNsense](https://opnsense.org/) 25.1
-Tried if flashrom that one use for [Protectli](https://teklager.se/en/knowledge-base/apu-bios-upgrade/) but this seems to complain
+Tried using flashrom, which is used for [Protectli](https://teklager.se/en/knowledge-base/apu-bios-upgrade/), but this seems to complain:
 
 ```
-# Install flashrom on opnsence
+# Install flashrom on opnsense
 pkg install -y flashrom
 
 flashrom -p internal:boardmismatch=force -r oldbios.bin
@@ -51,19 +50,19 @@ Reading flash... done.
 ```
 
 ### Read with efi tools
-Looking inside the [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) one see thay have made a Fpt.efi binary and the actual 16Mb bios is inside 1.bin and 1.nsh is a script using both files   
+Looking inside the [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) one sees they have made an Fpt.efi binary and the actual 16Mb BIOS is inside 1.bin, and 1.nsh is a script using both files.   
 
 ### Read with FT232H 
 
-The 25Q80DVSIG is very close to the EN24A201S and condencator so getting and SOTC 8 testclip is impossible. 
+The 25Q80DVSIG is very close to the EN24A201S and capacitor, so getting an SOTC 8 test clip is impossible. 
 
 ```
 flashrom -p ft2232_spi:type=232H -c W25Q128.V -r oldbios.bin
 ```
-## Inspect the the rom file
+## Inspect the ROM file
 
-* [1.bin](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) and [oldbios.bin](roms/oldbios.bin) have same size 16M
-* [1.bin](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) and [oldbios.bin](roms/oldbios.bin) differs in checksum (md5sum *.bin)
+* [1.bin](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) and [oldbios.bin](roms/oldbios.bin) have the same size 16M
+* [1.bin](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) and [oldbios.bin](roms/oldbios.bin) differ in checksum (md5sum *.bin)
 
 
 ## Hardware 
