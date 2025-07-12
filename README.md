@@ -32,7 +32,7 @@ No DMI table found.
 Found chipset "Intel Jasper Lake".
 Enabling flash write... pcilib: This access method is not supported.
 ```
-### Read with flashrom with [Kali Live Boot](https://www.kali.org/get-kali/#kali-platforms)) 2025.2
+### Read with flashrom with [Kali Live Boot](https://www.kali.org/get-kali/#kali-platforms) 2025.2
 ```
 sudo flashrom -p internal -r oldbios.bin
 flashrom 1.4.0 on Linux 6.12.25-amd64 (x86_64)
