@@ -71,6 +71,7 @@ flashrom -p ft2232_spi:type=232H -c W25Q128.V -r oldbios.bin
 ## Datasheets 
 | Description            | IC           |
 | ---                    |---           |
-| flash                  |4 x [Winbond 25Q28JVSO](https://www.alldatasheet.com/html-pdf/932084/WINBOND/25Q80DVSIG/2115/7/25Q80DVSIG.html)      |
-| flash                  |1 x [Winbond 25Q80DVSIG](https://www.alldatasheet.com/datasheet-pdf/pdf/932084/WINBOND/25Q80DVSIG.html)              |
+| flash 8MBIT            |4 x [Winbond 25Q28JVSO](https://www.alldatasheet.com/html-pdf/932084/WINBOND/25Q80DVSIG/2115/7/25Q80DVSIG.html)      |
+| flash 8MBIT            |1 x [Winbond 25Q80DVSIG](https://www.alldatasheet.com/datasheet-pdf/pdf/932084/WINBOND/25Q80DVSIG.html)              |
+| flash 128MBIT           |1 x [Winbond 25Q80DVSIG](https://www.alldatasheet.com/datasheet-pdf/pdf/932084/WINBOND/25Q80DVSIG.html)              |
 | isolation transformers |4 x EN24A201S|
