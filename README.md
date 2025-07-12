@@ -60,6 +60,11 @@ The 25Q80DVSIG is very close to the EN24A201S and condencator so getting and SOT
 ```
 flashrom -p ft2232_spi:type=232H -c W25Q128.V -r oldbios.bin
 ```
+## Inspect the the rom file
+
+* [1.bin](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) and [oldbios.bin](roms/oldbios.bin) have same size 16M
+* [1.bin](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) and [oldbios.bin](roms/oldbios.bin) differs in checksum (md5sum *.bin)
+
 
 ## Hardware 
 
