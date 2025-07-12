@@ -17,7 +17,7 @@ From the [top](images/N5105_top.png) picture one get out the serial number [1338
 Looks like they have a [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) but they have only made on version of it and it's the same I have installed [AMI BIOS 2.22.1282](images/ami_bios.png)
 
 ## Read flash 
-### Read with flashrom with [opnsence](https://opnsense.org/) 25.1
+### Read with flashrom with [OPNsense](https://opnsense.org/) 25.1
 Tried if flashrom that one use for [Protectli](https://teklager.se/en/knowledge-base/apu-bios-upgrade/) but this seems to complain
 
 ```
