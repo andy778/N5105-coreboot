@@ -76,3 +76,4 @@ flashrom -p ft2232_spi:type=232H -c W25Q128.V -r oldbios.bin
 | isolation transformers |4 x EN24A201S|
 | Ethernet I226-V        |4 x S2453L30|
 | Super I/O              |1 x IT8613E|
+| Regulator              |1 x GS7166|
