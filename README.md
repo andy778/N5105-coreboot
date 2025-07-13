@@ -64,6 +64,13 @@ flashrom -p ft2232_spi:type=232H -c W25Q128.V -r oldbios.bin
 * [1.bin](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) and [oldbios.bin](roms/oldbios.bin) have the same size 16M
 * [1.bin](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) and [oldbios.bin](roms/oldbios.bin) differ in checksum (md5sum *.bin)
 
+## Investigate from OS
+
+Use [inteltool](https://doc.coreboot.org/util/intelp2m/index.html) to [getinteltool.log](files/inteltool.log) data to generate gpi0.h 
+
+```
+sudo inteltool -G > inteltool.log
+```
 
 ## Hardware 
 
