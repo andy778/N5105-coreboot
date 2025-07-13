@@ -66,10 +66,12 @@ flashrom -p ft2232_spi:type=232H -c W25Q128.V -r oldbios.bin
 
 ## Investigate from OS
 
-Use [inteltool](https://doc.coreboot.org/util/intelp2m/index.html) to get [inteltool.log](files/inteltool.log) data to generate gpi0.h 
+Use [inteltool](https://doc.coreboot.org/util/intelp2m/index.html) to get [inteltool.log](files/inteltool.log) data to generate [gpio.h](files/gpio.h)
 
 ```
 sudo inteltool -G > inteltool.log
+# This generates gpio.h in output directory 
+intelp2m -platform jsl -file inteltool.log
 ```
 
 ## Hardware 
