@@ -54,7 +54,7 @@ Looking inside the [BIOS](https://www.bkipc.com/en/download/file-1338NP-12-4L.ht
 
 ### Read with FT232H 
 
-The 25Q80DVSIG is very close to the EN24A201S and capacitor, so getting an SOTC 8 test clip is impossible. 
+The 25Q128JVSO is very close to the EN24A201S and capacitor, so getting an SOTC 8 test clip is very tricky, maybe some soldering or very samll testclips? 
 
 ```
 flashrom -p ft2232_spi:type=232H -c W25Q128.V -r oldbios.bin
