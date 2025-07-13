@@ -73,6 +73,8 @@ sudo inteltool -G > inteltool.log
 # This generates gpio.h in output directory 
 intelp2m -platform jsl -file inteltool.log
 ```
+## Template to start from?
+Probably [Protectli V1*10](https://github.com/Dasharo/coreboot/tree/dasharo/src/mainboard/protectli/vault_jsl)
 
 ## Hardware 
 
