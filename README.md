@@ -4,11 +4,11 @@ Investigate if it's possible to have coreboot BIOS on Topton N5105 to remove all
 ## Hypothesis 
 Investigate if it's possible to have coreboot on this Topton N5105 firewall as the latest coreboot release [25.06](https://blogs.coreboot.org/blog/2025/07/04/announcing-the-coreboot-release-25-06/) mentions [Topton](https://doc.coreboot.org/mainboard/topton/adl/x2f-n100.html), CWWK CW-ADL-4L-V1.0 and CW-ADLNTB-1C2L-V3.0
 
-* [x] Add pictures of the motherboard
-* ~~Search on the internet if someone has done anything for this already~~ No
-* ~~Does there exist any BIOS update for this firewall~~ No 
-* ~~What flash chipsets are used? Can I read them with the equipment I have?~~ Maybe 
-* [] Can one figure out settings for coreboot with Ghidra, #1
+- [x] Add pictures of the motherboard
+- [x] Search on the internet if someone has done anything for this already
+- [x] Does there exist any BIOS update for this firewall 
+- [x] What flash chipsets are used? Can I read them with the equipment I have?
+- [ ] Can one figure out settings for coreboot with Ghidra, #1
 
 ## Reverse engineering 
 From the [top](images/N5105_top.png) picture one gets the serial number [1338NP-12](https://www.bkipc.com/en/product/BKHD-1338NP-12-4L.html), and that shows it's actually BKHD that is the manufacturer. 
