@@ -8,7 +8,7 @@ Investigate if it's possible to have coreboot on this Topton N5105 firewall as t
 - [x] Search on the internet if someone has done anything for this already
 - [x] Does there exist any BIOS update for this firewall 
 - [x] What flash chipsets are used? Can I read them with the equipment I have?
-- [ ] Can one figure out settings for coreboot with Ghidra, #1
+- [ ] #1
 
 ## Reverse engineering 
 From the [top](images/N5105_top.png) picture one gets the serial number [1338NP-12](https://www.bkipc.com/en/product/BKHD-1338NP-12-4L.html), and that shows it's actually BKHD that is the manufacturer. 
