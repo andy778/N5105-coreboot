@@ -63,7 +63,7 @@ flashrom -p ft2232_spi:type=232H -c W25Q128.V -r oldbios.bin
 
 * [1.bin](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) and [oldbios.bin](roms/oldbios.bin) have the same size 16M
 * [1.bin](https://www.bkipc.com/en/download/file-1338NP-12-4L.html) and [oldbios.bin](roms/oldbios.bin) differ in checksum (md5sum *.bin)
-* [Probability of malware](https://www.youtube.com/watch?v=AZXKxcHMnAs) in the AMI BIOS ? 
+* [Probability of malware](#1) in the AMI BIOS 
 
 ## Investigate from OS
 
