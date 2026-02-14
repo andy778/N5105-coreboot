@@ -1,0 +1,65 @@
+if BOARD_TECHVISION_TVI7309X
+
+config BOARD_SPECIFIC_OPTIONS
+	def_bool y
+	select BOARD_ROMSIZE_KB_16384
+	select SOC_INTEL_JASPERLAKE
+	select SOC_INTEL_COMMON_BLOCK_HDA_VERB
+	select SUPERIO_ITE_IT8613E
+	select INTEL_GMA_HAVE_VBT
+	select HAVE_ACPI_RESUME
+	select HAVE_ACPI_TABLES
+	select HAVE_SPD_IN_CBFS
+	select CRB_TPM
+	select HAVE_INTEL_PTT
+	select MAINBOARD_HAS_TPM2
+
+config MAX_CPUS
+	default 4
+
+config MAINBOARD_DIR
+	string
+	default "techvision/tvi7309x"
+
+config MAINBOARD_PART_NUMBER
+	string
+	default "TVI7309X"
+
+config MAINBOARD_VENDOR
+	string
+	default "Techvision"
+
+config MAINBOARD_FAMILY
+	string
+	default "TVI7309X Firewall"
+
+config MAINBOARD_SMBIOS_PRODUCT_NAME
+	string
+	default "TVI7309X"
+
+config DIMM_MAX
+	default 2
+
+config DIMM_SPD_SIZE
+	default 512
+
+config CBFS_SIZE
+	default 0x800000
+
+config IFD_BIN_PATH
+	string
+	default "3rdparty/blobs/mainboard/techvision/tvi7309x/descriptor.bin"
+
+config ME_BIN_PATH
+	string
+	default "3rdparty/blobs/mainboard/techvision/tvi7309x/me.bin"
+
+config HAVE_IFD_BIN
+	bool
+	default y
+
+config HAVE_ME_BIN
+	bool
+	default y
+
+endif

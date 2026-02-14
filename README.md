@@ -77,6 +77,114 @@ intelp2m -platform jsl -file inteltool.log
 ## Template to start from?
 Probably [Protectli V1*10](https://github.com/Dasharo/coreboot/tree/dasharo/src/mainboard/protectli/vault_jsl)
 
+## Building coreboot
+
+The board port source files live in `coreboot/` and the helper scripts in `scripts/`. The coreboot tree itself is cloned during setup -- it is not part of this repo.
+
+### Build on Linux (recommended)
+
+Debian/Ubuntu is the recommended build environment.
+
+#### Quick start
+```bash
+# 1. Install dependencies, clone coreboot, build toolchain, extract blobs
+chmod +x scripts/setup_coreboot.sh
+./scripts/setup_coreboot.sh
+
+# 2. Build the ROM
+chmod +x scripts/build.sh
+./scripts/build.sh
+
+# Output: coreboot-build/build/coreboot.rom (16 MB)
+```
+
+#### Manual step-by-step
+```bash
+# Install build dependencies (Debian/Ubuntu)
+sudo apt-get install -y bison build-essential curl flex git gnat \
+    libncurses-dev libssl-dev zlib1g-dev pkgconf m4 wget flashrom
+
+# Clone coreboot and initialise submodules
+git clone https://review.coreboot.org/coreboot coreboot-build
+cd coreboot-build
+git submodule update --init --checkout
+git submodule update --init 3rdparty/blobs
+git submodule update --init 3rdparty/fsp
+git submodule update --init 3rdparty/intel-microcode
+
+# Build the cross-compiler (one-time, ~30 min)
+make crossgcc-i386 CPUS=$(nproc)
+
+# Copy the board port into the coreboot tree
+mkdir -p src/mainboard/techvision/tvi7309x
+cp ../coreboot/* src/mainboard/techvision/tvi7309x/
+
+# Extract Intel Flash Descriptor and ME firmware from stock ROM
+make -C util/ifdtool
+util/ifdtool/ifdtool -x ../roms/oldbios.bin
+mkdir -p 3rdparty/blobs/mainboard/techvision/tvi7309x
+mv flashregion_0_flashdescriptor.bin 3rdparty/blobs/mainboard/techvision/tvi7309x/descriptor.bin
+mv flashregion_2_intel_me.bin 3rdparty/blobs/mainboard/techvision/tvi7309x/me.bin
+rm -f flashregion_1_bios.bin
+
+# Configure (use the defconfig, or run `make menuconfig` to customise)
+cp src/mainboard/techvision/tvi7309x/defconfig .config
+make olddefconfig
+
+# Build
+make -j$(nproc)
+# Output: build/coreboot.rom
+```
+
+### Build on Windows (via WSL2)
+
+coreboot does **not** build natively on Windows. Use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) with a Debian or Ubuntu distribution:
+
+```powershell
+# 1. Install WSL2 (from an Administrator PowerShell)
+wsl --install -d Ubuntu
+
+# 2. Reboot, then open the Ubuntu terminal
+```
+
+Inside the WSL2 Ubuntu terminal:
+```bash
+# Access the repo (assuming it is cloned under your Windows home directory)
+cd /mnt/c/Users/$USER/N5105-coreboot
+
+# From here the steps are identical to the Linux build above
+chmod +x scripts/setup_coreboot.sh
+./scripts/setup_coreboot.sh
+./scripts/build.sh
+```
+
+> **Note:** Build performance is significantly better if the coreboot tree
+> lives on the Linux filesystem (`~/coreboot-build`) rather than on the
+> mounted Windows drive (`/mnt/c/...`). The setup script places it next
+> to the repo by default.
+
+### Flashing
+
+```bash
+# From Linux on the target device
+sudo flashrom -p internal -w build/coreboot.rom
+
+# Via external FT232H programmer
+flashrom -p ft2232_spi:type=232H -c W25Q128.V -w build/coreboot.rom
+```
+
+## Coreboot port TODO
+
+Before the coreboot ROM is ready for first boot, these items need attention:
+
+- [ ] Dump SPD data from the installed DIMMs (`decode-dimms` or `i2cdump`) and add to CBFS
+- [ ] Verify DQ/DQS memory maps -- currently copied from Protectli vault_jsl; may need tuning if memory training fails
+- [ ] Extract VBT (Video BIOS Table) from stock ROM for display output (`cbfstool oldbios.bin extract -n vbt.bin`)
+- [ ] Test with serial console connected (COM1, 115200 baud) to diagnose first-boot issues
+- [ ] Have external SPI programmer (FT232H + SOIC-8 clip) ready for recovery before first flash
+- [ ] Validate PCIe clock source assignment for the 4x I226-V NICs and NVMe slot
+- [ ] Investigate probability for malware https://github.com/andy778/N5105-coreboot/issues/1
+
 ## Hardware 
 
 ## Datasheets 
