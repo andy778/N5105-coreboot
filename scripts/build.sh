@@ -38,9 +38,15 @@ cd "$COREBOOT_DIR"
 # Ensure board port is up-to-date
 info "Syncing board port files..."
 mkdir -p "$BOARD_DEST"
+# Copy board-specific files (not Kconfig - handled separately)
 cp -v "$BOARD_SRC"/*.c "$BOARD_SRC"/*.h "$BOARD_SRC"/*.cb \
-      "$BOARD_SRC"/Kconfig "$BOARD_SRC"/Kconfig.name \
+      "$BOARD_SRC"/Kconfig.name \
       "$BOARD_SRC"/Makefile.mk "$BOARD_DEST/" 2>/dev/null || true
+# Copy vendor Kconfig to parent directory
+if [ -f "$BOARD_SRC/Kconfig" ]; then
+    mkdir -p "$(dirname "$BOARD_DEST")"
+    cp -v "$BOARD_SRC/Kconfig" "$(dirname "$BOARD_DEST")/" 2>/dev/null || true
+fi
 
 # Handle subcommands
 case "${1:-build}" in
@@ -100,12 +106,31 @@ fi
 if [ ! -f .config ]; then
 	if [ -f "$DEFCONFIG" ]; then
 		info "Applying defconfig..."
-		cp "$DEFCONFIG" .config
-		make olddefconfig
+		# Remove any board-specific lines from defconfig before applying
+		grep -v "BOARD_TECHVISION\|VENDOR_TECHVISION" "$DEFCONFIG" > /tmp/defconfig.tmp
+		cp /tmp/defconfig.tmp .config
+		rm /tmp/defconfig.tmp
 	else
 		warn "No .config found. Run: $0 menuconfig"
 		exit 1
 	fi
+fi
+
+# Patch config 
+info "Patching config for TVI7309X board..."
+# Disable emulation vendor first
+sed -i 's/^CONFIG_VENDOR_EMULATION=y/# CONFIG_VENDOR_EMULATION is not set/' .config 2>/dev/null || true
+# Add techvision vendor if not present
+if ! grep -q "^CONFIG_VENDOR_TECHVISION=y" .config 2>/dev/null; then
+	echo 'CONFIG_VENDOR_TECHVISION=y' >> .config
+fi
+
+# Run olddefconfig to set defaults but ignore errors from unknown symbols
+make olddefconfig 2>&1 || true
+
+# Add the board config after olddefconfig
+if ! grep -q "^CONFIG_BOARD_TECHVISION_TVI7309X=y" .config 2>/dev/null; then
+	echo 'CONFIG_BOARD_TECHVISION_TVI7309X=y' >> .config
 fi
 
 # ── Build ──────────────────────────────────────────────────────────────

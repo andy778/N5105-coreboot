@@ -1,5 +1,4 @@
-config BOARD_TECHVISION_TVI7309X
-	bool "TVI7309X"
-	help
-	  BKHD 1338NP-12 / Techvision TVI7309X rev B0.
-	  Jasper Lake N5105 firewall with 4x Intel I226-V 2.5G NICs.
+## SPDX-License-Identifier: GPL-2.0-only
+
+config VENDOR_TECHVISION
+	bool "Techvision"

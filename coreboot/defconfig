@@ -1,10 +1,6 @@
 # coreboot defconfig for Techvision TVI7309X (Jasper Lake N5105)
 # Usage: copy to coreboot/.config or run `make defconfig KBUILD_DEFCONFIG=path/to/defconfig`
 
-CONFIG_VENDOR_TECHVISION=y
-CONFIG_BOARD_TECHVISION_TVI7309X=y
-CONFIG_CBFS_SIZE=0x800000
-
 # Use the coreboot toolchain (not the host compiler)
 # CONFIG_ANY_TOOLCHAIN is not set
 
@@ -29,7 +25,7 @@ CONFIG_HAVE_INTEL_PTT=y
 CONFIG_MAINBOARD_HAS_TPM2=y
 
 # Flash chip: Winbond W25Q128JVSIQ, 16 MB
-CONFIG_BOARD_ROMSIZE_KB_16384=y
+CONFIG_COREBOOT_ROMSIZE_KB_16384=y
 
 # Debug level (reduce for production)
 CONFIG_DEFAULT_CONSOLE_LOGLEVEL=7
