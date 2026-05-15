@@ -46,10 +46,9 @@ void mainboard_silicon_init_params(FSP_S_CONFIG *params)
 	params->Hwp = 0;
 
 	/*
-	 * Skip PCI Subsystem ID programming to match stock firmware
-	 * behavior and improve driver compatibility.
+	 * SSID programming is skipped by default in JSL FSP when
+	 * SiSsidTablePtr is null (which is our case).
 	 */
-	params->SiSkipSsidProgramming = 1;
 }
 
 struct chip_operations mainboard_ops = {

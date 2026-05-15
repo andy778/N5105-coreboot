@@ -173,16 +173,101 @@ sudo flashrom -p internal -w build/coreboot.rom
 flashrom -p ft2232_spi:type=232H -c W25Q128.V -w build/coreboot.rom
 ```
 
+## Collecting hardware data (repeatable steps)
+
+Run these from a Linux live boot on the target device (Kali 2025.2 works). All
+data should already be in `files/` and `coreboot/`; these notes are for
+reproducing the steps if you ever need to re-extract on a different unit.
+
+### 1. Dump the stock BIOS
+
+```bash
+sudo flashrom -p internal -r oldbios.bin
+md5sum oldbios.bin                         # keep a verified backup
+```
+→ saved to [roms/oldbios.bin](roms/oldbios.bin).
+
+### 2. Dump SPD from both DDR4 SO-DIMMs
+
+```bash
+sudo apt-get install -y i2c-tools
+sudo i2cdetect -l                           # confirm "SMBus I801 adapter" is i2c-0
+sudo i2cdetect -y 0                         # SPDs appear at 0x50 (slot A) and 0x52 (slot B)
+
+# Slot A — kernel claims 0x50 (shows as "UU"); use sysfs to read it
+sudo cat /sys/bus/i2c/devices/0-0050/eeprom > spd0.bin
+wc -c spd0.bin                              # expect 512 bytes (DDR4)
+
+# Slot B — accessible directly
+sudo i2cdump -y 0 0x52 b > spd_slot_b.hex   # i2cdump page 0 (timing data)
+```
+
+Convert `spd_slot_b.hex` to a 512-byte binary and place both at
+`coreboot/spd0.bin` and `coreboot/spd1.bin`. Also convert `spd0.bin` to the
+hex format coreboot expects in `coreboot/spd/kingston8gb.spd.hex` (one row of
+16 space-separated hex bytes per line; 32 rows total).
+
+> **Note:** the slot B dump captured only SPD page 1 (manufacturer info) on this
+> board. The Kingston SPD timings are used for both channels at first boot
+> via `spd_index=0` in [coreboot/romstage.c](coreboot/romstage.c). This works
+> because both DIMMs are DDR4-2667 8 GB.
+
+### 3. Extract VBT (Video BIOS Table) from the stock ROM
+
+```bash
+# Find the $VBT signature offset in the BIOS dump
+grep -aboP '\$VBT' roms/oldbios.bin
+# Header: 0x00 = "$VBT", 0x14 = u16 version, 0x16 = u16 header_size, 0x18 = u16 vbt_size
+# Read those fields and dd out vbt_size bytes from the offset
+```
+→ extracted to [coreboot/data.vbt](coreboot/data.vbt) (7235 bytes, " JASPERLAKE" product, BDB at offset 0x30).
+
+### 4. Capture GPIO configuration from the running system
+
+```bash
+sudo inteltool -G > inteltool.log
+intelp2m -platform jsl -file inteltool.log
+# Generated gpio.h needs cleanup:
+#   - Strip leading zeros: GPP_X0n -> GPP_Xn
+#   - Remove all VGPIO_PCIE*, VGPIO_LNK_DN_*, VGPIO_USB* lines (not in JSL headers)
+#   - Rename VGPIOnn -> VGPIO_nn
+```
+→ post-cleanup file at [coreboot/gpio.h](coreboot/gpio.h).
+
+### 5. Capture the stock DSDT (reference only — not used in coreboot)
+
+```bash
+sudo apt-get install -y acpica-tools
+sudo cp /sys/firmware/acpi/tables/DSDT dsdt.aml
+iasl -d dsdt.aml                            # produces dsdt.dsl
+```
+→ saved to [files/dsdt.dsl](files/dsdt.dsl). Reference only; coreboot
+generates its own DSDT from [coreboot/dsdt.asl](coreboot/dsdt.asl) plus
+included JSL SoC ASL files.
+
+### 6. Dump PCI and DMI data
+
+```bash
+lspci -nn > lspci.txt
+sudo lspci -vvv > lspcivvv.txt
+sudo dmidecode > dmidecode.txt
+```
+→ saved in [files/](files/).
+
 ## Coreboot port TODO
 
-Before the coreboot ROM is ready for first boot, these items need attention:
-
-- [ ] Dump SPD data from the installed DIMMs (`decode-dimms` or `i2cdump`) and add to CBFS
-- [ ] Verify DQ/DQS memory maps -- currently copied from Protectli vault_jsl; may need tuning if memory training fails
-- [ ] Extract VBT (Video BIOS Table) from stock ROM for display output (`cbfstool oldbios.bin extract -n vbt.bin`)
-- [ ] Test with serial console connected (COM1, 115200 baud) to diagnose first-boot issues
-- [ ] Have external SPI programmer (FT232H + SOIC-8 clip) ready for recovery before first flash
-- [ ] Validate PCIe clock source assignment for the 4x I226-V NICs and NVMe slot
+- [x] Dump SPD data from the installed DIMMs and add to CBFS
+- [x] Extract VBT from stock ROM
+- [x] Capture stock DSDT for reference
+- [x] Kconfig structure (vendor + board) so JSL is actually selected
+- [x] Build successfully (`scripts/build.sh` produces a 16 MB coreboot.rom)
+- [ ] Verify DQ/DQS memory maps — currently copied from Protectli vault_jsl;
+      may need tuning if FSP-M training fails on first boot
+- [ ] Test with serial console connected (COM1, 115200 baud) to diagnose first boot
+- [ ] Have external SPI programmer (FT232H + narrow SOIC-8 clip, e.g. Pomona
+      5250) ready for recovery before first flash
+- [ ] Validate PCIe clock source assignment for the 4× I226-V NICs and NVMe slot
+- [ ] Get Samsung DIMM page 0 SPD (timing data) — currently only page 1 captured
 - [ ] Investigate probability for malware https://github.com/andy778/N5105-coreboot/issues/1
 
 ## Hardware 

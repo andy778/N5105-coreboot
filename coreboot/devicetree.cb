@@ -26,18 +26,20 @@ chip soc/intel/jasperlake
 	register "DdiPortCDdc" = "1"
 	register "SkipExtGfxScan" = "1"
 
-	# USB port configuration
-	# Mapped from lspci: xHCI at 00:14.0
+	# USB port configuration (sconfig does not allow C comments inside
+	# multi-line register strings — keep these terse).
+	# 0,1 = rear USB2; 2,3 = internal headers.
 	register "usb2_ports" = "{
-		[0] = USB2_PORT_SHORT(OC_SKIP),		/* Rear USB 2.0 port 1 */
-		[1] = USB2_PORT_SHORT(OC_SKIP),		/* Rear USB 2.0 port 2 */
-		[2] = USB2_PORT_SHORT(OC_SKIP),		/* Internal header */
-		[3] = USB2_PORT_SHORT(OC_SKIP),		/* Internal header */
+		[0] = USB2_PORT_SHORT(OC_SKIP),
+		[1] = USB2_PORT_SHORT(OC_SKIP),
+		[2] = USB2_PORT_SHORT(OC_SKIP),
+		[3] = USB2_PORT_SHORT(OC_SKIP),
 	}"
 
+	# 0,1 = rear USB3.
 	register "usb3_ports" = "{
-		[0] = USB3_PORT_DEFAULT(OC_SKIP),	/* Rear USB 3.0 port 1 */
-		[1] = USB3_PORT_DEFAULT(OC_SKIP),	/* Rear USB 3.0 port 2 */
+		[0] = USB3_PORT_DEFAULT(OC_SKIP),
+		[1] = USB3_PORT_DEFAULT(OC_SKIP),
 	}"
 
 	# SATA configuration (00:17.0 AHCI controller)
@@ -45,15 +47,14 @@ chip soc/intel/jasperlake
 	register "SataPortsEnable[0]" = "1"
 
 	# LPC/eSPI decode ranges for ITE IT8613E Super I/O at 0x2e
-	register "gen1_dec" = "0x003c0a01"	/* 0xa00-0xa3f: IT8613E runtime regs */
-	register "gen2_dec" = "0x000c0081"	/* 0x80-0x8f: debug port */
-	register "gen3_dec" = "0x00fc0201"	/* 0x200-0x2ff: game port range */
+	register "gen1_dec" = "0x003c0a01"	# 0xa00-0xa3f: IT8613E runtime regs
+	register "gen2_dec" = "0x000c0081"	# 0x80-0x8f: debug port
+	register "gen3_dec" = "0x00fc0201"	# 0x200-0x2ff: game port range
 
 	# Skip CPU replacement check
 	register "SkipCpuReplacementCheck" = "1"
 
-	# HD Audio (00:1f.3)
-	register "PchHdaAudioLinkHdaEnable" = "1"
+	# HD Audio (00:1f.3) — disabled until hda_verb.c is provided
 
 	# PCIe clock source mapping
 	# Clk0 -> NVMe M.2 (RP1, 00:1c.0)
@@ -69,10 +70,10 @@ chip soc/intel/jasperlake
 	register "PcieClkSrcUsage[5]" = "PCIE_CLK_NOTUSED"
 
 	# Power management minimum assertion widths
-	register "PchPmSlpS3MinAssert"  = "3"	/* 50ms */
-	register "PchPmSlpS4MinAssert"  = "1"	/* 1s */
-	register "PchPmSlpSusMinAssert" = "3"	/* 1s */
-	register "PchPmSlpAMinAssert"   = "3"	/* 98ms */
+	register "PchPmSlpS3MinAssert"  = "3"	# 50ms
+	register "PchPmSlpS4MinAssert"  = "1"	# 1s
+	register "PchPmSlpSusMinAssert" = "3"	# 1s
+	register "PchPmSlpAMinAssert"   = "3"	# 98ms
 
 	# xHCI LFPS sampling off time
 	register "xhci_lfps_sampling_offtime_ms" = "9"
@@ -151,7 +152,7 @@ chip soc/intel/jasperlake
 		end
 		device pci 1f.1 hidden end	# P2SB
 		device pci 1f.2 hidden end	# Power Management Controller
-		device pci 1f.3 on  end		# HD Audio (8086:4dc8)
+		device pci 1f.3 off end		# HD Audio (8086:4dc8) — disabled
 		device pci 1f.4 on  end		# SMBus (8086:4da3)
 		device pci 1f.5 on  end		# SPI Controller (8086:4da4)
 		device pci 1f.7 off end		# Intel Trace Hub

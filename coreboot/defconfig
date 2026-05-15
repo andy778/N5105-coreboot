@@ -27,5 +27,8 @@ CONFIG_MAINBOARD_HAS_TPM2=y
 # Flash chip: Winbond W25Q128JVSIQ, 16 MB
 CONFIG_COREBOOT_ROMSIZE_KB_16384=y
 
+# DDR4 SPD size: 512 bytes (full DDR4 SPD; lib/Kconfig defaults to 256 for DDR3)
+CONFIG_DIMM_SPD_SIZE=512
+
 # Debug level (reduce for production)
 CONFIG_DEFAULT_CONSOLE_LOGLEVEL=7

@@ -40,13 +40,26 @@ info "Syncing board port files..."
 mkdir -p "$BOARD_DEST"
 # Copy board-specific files (not Kconfig - handled separately)
 cp -v "$BOARD_SRC"/*.c "$BOARD_SRC"/*.h "$BOARD_SRC"/*.cb \
+      "$BOARD_SRC"/*.asl \
       "$BOARD_SRC"/Kconfig.name \
       "$BOARD_SRC"/Makefile.mk "$BOARD_DEST/" 2>/dev/null || true
-# Copy vendor Kconfig to parent directory
-if [ -f "$BOARD_SRC/Kconfig" ]; then
-    mkdir -p "$(dirname "$BOARD_DEST")"
-    cp -v "$BOARD_SRC/Kconfig" "$(dirname "$BOARD_DEST")/" 2>/dev/null || true
+# Copy binary blobs referenced by Makefile.mk (VBT)
+find "$BOARD_SRC" -maxdepth 1 -name '*.vbt' -exec cp -v {} "$BOARD_DEST/" \;
+# Copy spd/ subdirectory (SPD_SOURCES hex files; SPD_SOURCES list lives in board Makefile.mk)
+if [ -d "$BOARD_SRC/spd" ]; then
+    mkdir -p "$BOARD_DEST/spd"
+    cp -v "$BOARD_SRC/spd"/*.spd.hex "$BOARD_DEST/spd/" 2>/dev/null
 fi
+# Kconfig layout:
+#   coreboot/Kconfig             -> src/mainboard/techvision/Kconfig  (vendor)
+#   coreboot/vendor.Kconfig.name -> src/mainboard/techvision/Kconfig.name  (vendor menu)
+#   coreboot/board.Kconfig       -> src/mainboard/techvision/tvi7309x/Kconfig  (board)
+#   coreboot/Kconfig.name        -> src/mainboard/techvision/tvi7309x/Kconfig.name  (board menu)
+VENDOR_DIR="$(dirname "$BOARD_DEST")"
+mkdir -p "$VENDOR_DIR"
+cp -v "$BOARD_SRC/Kconfig"             "$VENDOR_DIR/Kconfig"
+cp -v "$BOARD_SRC/vendor.Kconfig.name" "$VENDOR_DIR/Kconfig.name"
+cp -v "$BOARD_SRC/board.Kconfig"       "$BOARD_DEST/Kconfig"
 
 # Handle subcommands
 case "${1:-build}" in
@@ -103,34 +116,33 @@ fi
 
 # ── Configure ──────────────────────────────────────────────────────────
 
+# If existing .config isn't for our board, wipe it
+if [ -f .config ] && ! grep -q "^CONFIG_BOARD_TECHVISION_TVI7309X=y" .config; then
+	warn ".config is not for TVI7309X; regenerating from defconfig"
+	rm -f .config
+fi
+
 if [ ! -f .config ]; then
-	if [ -f "$DEFCONFIG" ]; then
-		info "Applying defconfig..."
-		# Remove any board-specific lines from defconfig before applying
-		grep -v "BOARD_TECHVISION\|VENDOR_TECHVISION" "$DEFCONFIG" > /tmp/defconfig.tmp
-		cp /tmp/defconfig.tmp .config
-		rm /tmp/defconfig.tmp
-	else
-		warn "No .config found. Run: $0 menuconfig"
+	if [ ! -f "$DEFCONFIG" ]; then
+		error "Missing $DEFCONFIG"
 		exit 1
 	fi
-fi
-
-# Patch config 
-info "Patching config for TVI7309X board..."
-# Disable emulation vendor first
-sed -i 's/^CONFIG_VENDOR_EMULATION=y/# CONFIG_VENDOR_EMULATION is not set/' .config 2>/dev/null || true
-# Add techvision vendor if not present
-if ! grep -q "^CONFIG_VENDOR_TECHVISION=y" .config 2>/dev/null; then
+	info "Applying defconfig..."
+	cp "$DEFCONFIG" .config
+	# Force vendor + board selection BEFORE olddefconfig so selects propagate
+	sed -i '/^CONFIG_VENDOR_/d; /^CONFIG_BOARD_/d; /^CONFIG_MAINBOARD_/d' .config
 	echo 'CONFIG_VENDOR_TECHVISION=y' >> .config
+	echo 'CONFIG_BOARD_TECHVISION_TVI7309X=y' >> .config
 fi
 
-# Run olddefconfig to set defaults but ignore errors from unknown symbols
-make olddefconfig 2>&1 || true
+info "Running olddefconfig to resolve symbol dependencies..."
+make olddefconfig
 
-# Add the board config after olddefconfig
-if ! grep -q "^CONFIG_BOARD_TECHVISION_TVI7309X=y" .config 2>/dev/null; then
-	echo 'CONFIG_BOARD_TECHVISION_TVI7309X=y' >> .config
+# Sanity check: JSL must be selected
+if ! grep -q "^CONFIG_SOC_INTEL_JASPERLAKE=y" .config; then
+	error "Jasper Lake SoC not selected after olddefconfig — Kconfig is broken"
+	error "Check that src/mainboard/techvision/tvi7309x/Kconfig selects SOC_INTEL_JASPERLAKE"
+	exit 1
 fi
 
 # ── Build ──────────────────────────────────────────────────────────────
