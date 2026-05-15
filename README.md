@@ -181,6 +181,16 @@ reproducing the steps if you ever need to re-extract on a different unit.
 
 ### 1. Dump the stock BIOS
 
+**Kernel parameter required.** Kali (and most modern distros) ship with strict
+`/dev/mem` access, which blocks `flashrom -p internal`. Boot with `iomem=relaxed`:
+
+- At the GRUB menu, press **`e`** to edit the boot entry
+- Find the line starting with `linux` and append ` iomem=relaxed` to the end
+- Press **Ctrl-X** (or **F10**) to boot
+- *(Persistent option: edit `GRUB_CMDLINE_LINUX` in `/etc/default/grub` and run
+  `sudo update-grub` — only do this on a live-USB persistence partition or a
+  throwaway install.)*
+
 ```bash
 sudo flashrom -p internal -r oldbios.bin
 md5sum oldbios.bin                         # keep a verified backup
@@ -189,8 +199,16 @@ md5sum oldbios.bin                         # keep a verified backup
 
 ### 2. Dump SPD from both DDR4 SO-DIMMs
 
+**Modules required.** On Kali 2026.1 the SMBus and DDR4-SPD drivers are not
+auto-loaded — without them `i2cdetect -l` shows no `SMBus I801 adapter` and the
+`/sys/bus/i2c/devices/0-0050/eeprom` path doesn't exist.
+
 ```bash
 sudo apt-get install -y i2c-tools
+sudo modprobe i2c-dev                       # exposes /dev/i2c-*
+sudo modprobe i2c-i801                      # Intel SMBus host adapter
+sudo modprobe ee1004                        # DDR4 SPD driver (creates eeprom in sysfs)
+
 sudo i2cdetect -l                           # confirm "SMBus I801 adapter" is i2c-0
 sudo i2cdetect -y 0                         # SPDs appear at 0x50 (slot A) and 0x52 (slot B)
 
