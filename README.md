@@ -77,6 +77,199 @@ intelp2m -platform jsl -file inteltool.log
 ## Template to start from?
 Probably [Protectli V1*10](https://github.com/Dasharo/coreboot/tree/dasharo/src/mainboard/protectli/vault_jsl)
 
+## Building coreboot
+
+The board port source files live in `coreboot/` and the helper scripts in `scripts/`. The coreboot tree itself is cloned during setup -- it is not part of this repo.
+
+### Build on Linux (recommended)
+
+Debian/Ubuntu is the recommended build environment.
+
+#### Quick start
+```bash
+# 1. Install dependencies, clone coreboot, build toolchain, extract blobs
+chmod +x scripts/setup_coreboot.sh
+./scripts/setup_coreboot.sh
+
+# 2. Build the ROM
+chmod +x scripts/build.sh
+./scripts/build.sh
+
+# Output: coreboot-build/build/coreboot.rom (16 MB)
+```
+
+#### Manual step-by-step
+```bash
+# Install build dependencies (Debian/Ubuntu)
+sudo apt-get install -y bison build-essential curl flex git gnat \
+    libncurses-dev libssl-dev zlib1g-dev pkgconf m4 wget flashrom
+
+# Clone coreboot and initialise submodules
+git clone https://review.coreboot.org/coreboot coreboot-build
+cd coreboot-build
+git submodule update --init --checkout
+git submodule update --init 3rdparty/blobs
+git submodule update --init 3rdparty/fsp
+git submodule update --init 3rdparty/intel-microcode
+
+# Build the cross-compiler (one-time, ~30 min)
+make crossgcc-i386 CPUS=$(nproc)
+
+# Copy the board port into the coreboot tree
+mkdir -p src/mainboard/techvision/tvi7309x
+cp ../coreboot/* src/mainboard/techvision/tvi7309x/
+
+# Extract Intel Flash Descriptor and ME firmware from stock ROM
+make -C util/ifdtool
+util/ifdtool/ifdtool -x ../roms/oldbios.bin
+mkdir -p 3rdparty/blobs/mainboard/techvision/tvi7309x
+mv flashregion_0_flashdescriptor.bin 3rdparty/blobs/mainboard/techvision/tvi7309x/descriptor.bin
+mv flashregion_2_intel_me.bin 3rdparty/blobs/mainboard/techvision/tvi7309x/me.bin
+rm -f flashregion_1_bios.bin
+
+# Configure (use the defconfig, or run `make menuconfig` to customise)
+cp src/mainboard/techvision/tvi7309x/defconfig .config
+make olddefconfig
+
+# Build
+make -j$(nproc)
+# Output: build/coreboot.rom
+```
+
+### Build on Windows (via WSL2)
+
+coreboot does **not** build natively on Windows. Use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) with a Debian or Ubuntu distribution:
+
+```powershell
+# 1. Install WSL2 (from an Administrator PowerShell)
+wsl --install -d Ubuntu
+
+# 2. Reboot, then open the Ubuntu terminal
+```
+
+Inside the WSL2 Ubuntu terminal:
+```bash
+# Access the repo (assuming it is cloned under your Windows home directory)
+cd /mnt/c/Users/$USER/N5105-coreboot
+
+# From here the steps are identical to the Linux build above
+chmod +x scripts/setup_coreboot.sh
+./scripts/setup_coreboot.sh
+./scripts/build.sh
+```
+
+> **Note:** Build performance is significantly better if the coreboot tree
+> lives on the Linux filesystem (`~/coreboot-build`) rather than on the
+> mounted Windows drive (`/mnt/c/...`). The setup script places it next
+> to the repo by default.
+
+### Flashing
+
+```bash
+# From Linux on the target device
+sudo flashrom -p internal -w build/coreboot.rom
+
+# Via external FT232H programmer
+flashrom -p ft2232_spi:type=232H -c W25Q128.V -w build/coreboot.rom
+```
+
+## Collecting hardware data (repeatable steps)
+
+Run these from a Linux live boot on the target device (Kali 2025.2 works). All
+data should already be in `files/` and `coreboot/`; these notes are for
+reproducing the steps if you ever need to re-extract on a different unit.
+
+### 1. Dump the stock BIOS
+
+```bash
+sudo flashrom -p internal -r oldbios.bin
+md5sum oldbios.bin                         # keep a verified backup
+```
+→ saved to [roms/oldbios.bin](roms/oldbios.bin).
+
+### 2. Dump SPD from both DDR4 SO-DIMMs
+
+```bash
+sudo apt-get install -y i2c-tools
+sudo i2cdetect -l                           # confirm "SMBus I801 adapter" is i2c-0
+sudo i2cdetect -y 0                         # SPDs appear at 0x50 (slot A) and 0x52 (slot B)
+
+# Slot A — kernel claims 0x50 (shows as "UU"); use sysfs to read it
+sudo cat /sys/bus/i2c/devices/0-0050/eeprom > spd0.bin
+wc -c spd0.bin                              # expect 512 bytes (DDR4)
+
+# Slot B — accessible directly
+sudo i2cdump -y 0 0x52 b > spd_slot_b.hex   # i2cdump page 0 (timing data)
+```
+
+Convert `spd_slot_b.hex` to a 512-byte binary and place both at
+`coreboot/spd0.bin` and `coreboot/spd1.bin`. Also convert `spd0.bin` to the
+hex format coreboot expects in `coreboot/spd/kingston8gb.spd.hex` (one row of
+16 space-separated hex bytes per line; 32 rows total).
+
+> **Note:** the slot B dump captured only SPD page 1 (manufacturer info) on this
+> board. The Kingston SPD timings are used for both channels at first boot
+> via `spd_index=0` in [coreboot/romstage.c](coreboot/romstage.c). This works
+> because both DIMMs are DDR4-2667 8 GB.
+
+### 3. Extract VBT (Video BIOS Table) from the stock ROM
+
+```bash
+# Find the $VBT signature offset in the BIOS dump
+grep -aboP '\$VBT' roms/oldbios.bin
+# Header: 0x00 = "$VBT", 0x14 = u16 version, 0x16 = u16 header_size, 0x18 = u16 vbt_size
+# Read those fields and dd out vbt_size bytes from the offset
+```
+→ extracted to [coreboot/data.vbt](coreboot/data.vbt) (7235 bytes, " JASPERLAKE" product, BDB at offset 0x30).
+
+### 4. Capture GPIO configuration from the running system
+
+```bash
+sudo inteltool -G > inteltool.log
+intelp2m -platform jsl -file inteltool.log
+# Generated gpio.h needs cleanup:
+#   - Strip leading zeros: GPP_X0n -> GPP_Xn
+#   - Remove all VGPIO_PCIE*, VGPIO_LNK_DN_*, VGPIO_USB* lines (not in JSL headers)
+#   - Rename VGPIOnn -> VGPIO_nn
+```
+→ post-cleanup file at [coreboot/gpio.h](coreboot/gpio.h).
+
+### 5. Capture the stock DSDT (reference only — not used in coreboot)
+
+```bash
+sudo apt-get install -y acpica-tools
+sudo cp /sys/firmware/acpi/tables/DSDT dsdt.aml
+iasl -d dsdt.aml                            # produces dsdt.dsl
+```
+→ saved to [files/dsdt.dsl](files/dsdt.dsl). Reference only; coreboot
+generates its own DSDT from [coreboot/dsdt.asl](coreboot/dsdt.asl) plus
+included JSL SoC ASL files.
+
+### 6. Dump PCI and DMI data
+
+```bash
+lspci -nn > lspci.txt
+sudo lspci -vvv > lspcivvv.txt
+sudo dmidecode > dmidecode.txt
+```
+→ saved in [files/](files/).
+
+## Coreboot port TODO
+
+- [x] Dump SPD data from the installed DIMMs and add to CBFS
+- [x] Extract VBT from stock ROM
+- [x] Capture stock DSDT for reference
+- [x] Kconfig structure (vendor + board) so JSL is actually selected
+- [x] Build successfully (`scripts/build.sh` produces a 16 MB coreboot.rom)
+- [ ] Verify DQ/DQS memory maps — currently copied from Protectli vault_jsl;
+      may need tuning if FSP-M training fails on first boot
+- [ ] Test with serial console connected (COM1, 115200 baud) to diagnose first boot
+- [ ] Have external SPI programmer (FT232H + narrow SOIC-8 clip, e.g. Pomona
+      5250) ready for recovery before first flash
+- [ ] Validate PCIe clock source assignment for the 4× I226-V NICs and NVMe slot
+- [ ] Get Samsung DIMM page 0 SPD (timing data) — currently only page 1 captured
+- [ ] Investigate probability for malware https://github.com/andy778/N5105-coreboot/issues/1
+
 ## Hardware 
 
 ## Datasheets 

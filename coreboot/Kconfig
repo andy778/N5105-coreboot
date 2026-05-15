@@ -1,0 +1,17 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+if VENDOR_TECHVISION
+
+choice
+	prompt "Mainboard model"
+
+source "src/mainboard/techvision/*/Kconfig.name"
+
+endchoice
+
+source "src/mainboard/techvision/*/Kconfig"
+
+config MAINBOARD_VENDOR
+	default "Techvision"
+
+endif # VENDOR_TECHVISION

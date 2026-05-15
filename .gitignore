@@ -1,0 +1,8 @@
+# coreboot tree is cloned by scripts/setup_coreboot.sh, not tracked
+coreboot-build/
+
+# Intermediate ACPI dump (binary) — keep the disassembled .dsl in files/
+files/dsdt.aml
+
+# Raw i2cdump output — keep the converted .bin instead
+coreboot/spd_slot_*.hex
