@@ -89,8 +89,11 @@ scripts/            setup_coreboot.sh, build.sh
 
 `CBFS_SIZE` is 0x800000 (8 MB) to fit the BIOS region.
 
-Blobs extracted from stock ROM go to:
-`coreboot-build/3rdparty/blobs/mainboard/techvision/tvi7309x/{descriptor,me}.bin`
+Blobs live in `coreboot-build/3rdparty/blobs/mainboard/techvision/tvi7309x/`:
+- `descriptor.bin`, `me.bin` — extracted from the stock ROM by setup_coreboot.sh
+- `Fsp.fd` — Jasper Lake FSP (not in the public IntelFsp/FSP repo; downloaded
+  by setup_coreboot.sh from Dasharo's dasharo-blobs with SHA256 verification,
+  split into FSP-M/FSP-S at build time via `FSP_FULL_FD`)
 
 ## Coreboot Coding Style
 

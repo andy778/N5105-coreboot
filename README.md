@@ -115,9 +115,9 @@ git submodule update --init 3rdparty/intel-microcode
 # Build the cross-compiler (one-time, ~30 min)
 make crossgcc-i386 CPUS=$(nproc)
 
-# Copy the board port into the coreboot tree
-mkdir -p src/mainboard/techvision/tvi7309x
-cp ../coreboot/* src/mainboard/techvision/tvi7309x/
+# Copy the board port into the coreboot tree (handles the vendor/board
+# Kconfig split -- a plain flat copy would produce a broken Kconfig layout)
+../scripts/sync_board.sh
 
 # Extract Intel Flash Descriptor and ME firmware from stock ROM
 make -C util/ifdtool
@@ -127,8 +127,16 @@ mv flashregion_0_flashdescriptor.bin 3rdparty/blobs/mainboard/techvision/tvi7309
 mv flashregion_2_intel_me.bin 3rdparty/blobs/mainboard/techvision/tvi7309x/me.bin
 rm -f flashregion_1_bios.bin
 
+# Download the Jasper Lake FSP (not in the public IntelFsp/FSP repo;
+# Dasharo redistributes Intel's JasperLakeFspBinPkg -- verify the checksum!)
+curl -sL -o 3rdparty/blobs/mainboard/techvision/tvi7309x/Fsp.fd \
+    https://raw.githubusercontent.com/Dasharo/dasharo-blobs/main/protectli/vault_jsl/JasperLakeFspBinPkg/FSP.fd
+echo "ab04314cce7fd51073331b98c796bcb6e74df59028db6a96df6561aba30f15d3  3rdparty/blobs/mainboard/techvision/tvi7309x/Fsp.fd" | sha256sum -c -
+
 # Configure (use the defconfig, or run `make menuconfig` to customise)
-cp src/mainboard/techvision/tvi7309x/defconfig .config
+cp ../coreboot/defconfig .config
+echo 'CONFIG_VENDOR_TECHVISION=y' >> .config
+echo 'CONFIG_BOARD_TECHVISION_TVI7309X=y' >> .config
 make olddefconfig
 
 # Build
@@ -220,15 +228,12 @@ wc -c spd0.bin                              # expect 512 bytes (DDR4)
 sudo i2cdump -y 0 0x52 b > spd_slot_b.hex   # i2cdump page 0 (timing data)
 ```
 
-Convert `spd_slot_b.hex` to a 512-byte binary and place both at
-`coreboot/spd0.bin` and `coreboot/spd1.bin`. Also convert `spd0.bin` to the
-hex format coreboot expects in `coreboot/spd/kingston8gb.spd.hex` (one row of
-16 space-separated hex bytes per line; 32 rows total).
+The dumps are kept in [files/spd/](files/spd/) for reference only.
 
-> **Note:** the slot B dump captured only SPD page 1 (manufacturer info) on this
-> board. The Kingston SPD timings are used for both channels at first boot
-> via `spd_index=0` in [coreboot/romstage.c](coreboot/romstage.c). This works
-> because both DIMMs are DDR4-2667 8 GB.
+> **Note:** coreboot does **not** use these dumps. FSP-M reads the SPD from
+> each DIMM over SMBus at boot (`READ_SMBUS`, addresses 0xA0/0xA4, see
+> [coreboot/romstage.c](coreboot/romstage.c)), so each channel trains with
+> its own module's timings and swapping DIMMs keeps working.
 
 ### 3. Extract VBT (Video BIOS Table) from the stock ROM
 
@@ -274,18 +279,24 @@ sudo dmidecode > dmidecode.txt
 
 ## Coreboot port TODO
 
-- [x] Dump SPD data from the installed DIMMs and add to CBFS
+- [x] Dump SPD data from the installed DIMMs (reference dumps in `files/spd/`)
+- [x] Read SPD over SMBus at boot instead of baking a CBFS copy — removes the
+      "use Kingston timings for the Samsung DIMM" hack
 - [x] Extract VBT from stock ROM
 - [x] Capture stock DSDT for reference
 - [x] Kconfig structure (vendor + board) so JSL is actually selected
 - [x] Build successfully (`scripts/build.sh` produces a 16 MB coreboot.rom)
-- [ ] Verify DQ/DQS memory maps — currently copied from Protectli vault_jsl;
-      may need tuning if FSP-M training fails on first boot
+- [x] Include the Jasper Lake FSP binaries — earlier ROMs built *without*
+      FSP-M/FSP-S (not in the public IntelFsp/FSP repo) and would never have
+      booted; now fetched from dasharo-blobs and verified by checksum
+- [x] Verify memory training parameters — DQ/DQS maps turned out to be
+      LPDDR4-only (ignored for DDR4 per JSL `meminit.h`); the RCOMP values
+      that DDR4 does use match the Protectli vault_jsl reference exactly
 - [ ] Test with serial console connected (COM1, 115200 baud) to diagnose first boot
 - [ ] Have external SPI programmer (FT232H + narrow SOIC-8 clip, e.g. Pomona
       5250) ready for recovery before first flash
 - [ ] Validate PCIe clock source assignment for the 4× I226-V NICs and NVMe slot
-- [ ] Get Samsung DIMM page 0 SPD (timing data) — currently only page 1 captured
+      (currently all `PCIE_CLK_FREE`, i.e. clocks always on — safe for bring-up)
 - [ ] Investigate probability for malware https://github.com/andy778/N5105-coreboot/issues/1
 
 ## Hardware 
