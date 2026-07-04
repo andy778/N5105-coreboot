@@ -6,3 +6,8 @@ files/dsdt.aml
 
 # Raw i2cdump output — keep the converted .bin instead
 coreboot/spd_slot_*.hex
+
+# Scratch/temp ROM dumps (det.bin etc.) — only oldbios.bin and 1.bin are kept
+roms/*
+!roms/oldbios.bin
+!roms/1.bin

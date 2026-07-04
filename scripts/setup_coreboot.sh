@@ -98,24 +98,49 @@ build_toolchain() {
 # ── Step 4: Install board port files ────────────────────────────────────
 
 install_board_port() {
-	cd "$COREBOOT_DIR"
-
-	info "Installing board port to $BOARD_DEST ..."
-	mkdir -p "$BOARD_DEST"
-
-	# Copy all board files from this repo's coreboot/ directory
-	if [ -d "$BOARD_SRC" ] && [ "$(ls -A "$BOARD_SRC" 2>/dev/null)" ]; then
-		cp -v "$BOARD_SRC"/* "$BOARD_DEST/"
-	else
+	if [ ! -d "$BOARD_SRC" ] || [ -z "$(ls -A "$BOARD_SRC" 2>/dev/null)" ]; then
 		error "No board port files found in $BOARD_SRC"
 		error "Expected files: Kconfig, Kconfig.name, devicetree.cb, etc."
 		exit 1
 	fi
 
+	info "Installing board port to $BOARD_DEST ..."
+	"$SCRIPT_DIR/sync_board.sh"
 	info "Board port installed."
 }
 
-# ── Step 5: Extract blobs from stock ROM ────────────────────────────────
+# ── Step 5: Download Jasper Lake FSP ────────────────────────────────────
+#
+# JSL FSP binaries are NOT in the public IntelFsp/FSP repo. Dasharo
+# redistributes Intel's JasperLakeFspBinPkg (from the JSL_BIOS_3332_00
+# kit) for their Protectli vault_jsl port; coreboot splits the combined
+# FSP.fd into FSP-M/FSP-S at build time.
+
+FSP_URL="https://raw.githubusercontent.com/Dasharo/dasharo-blobs/main/protectli/vault_jsl/JasperLakeFspBinPkg/FSP.fd"
+FSP_SHA256="ab04314cce7fd51073331b98c796bcb6e74df59028db6a96df6561aba30f15d3"
+
+download_fsp() {
+	local BLOB_DIR="$COREBOOT_DIR/3rdparty/blobs/mainboard/techvision/tvi7309x"
+	local FSP_FD="$BLOB_DIR/Fsp.fd"
+
+	if [ -f "$FSP_FD" ] && echo "$FSP_SHA256  $FSP_FD" | sha256sum -c --quiet - 2>/dev/null; then
+		info "Jasper Lake FSP already present and verified."
+		return
+	fi
+
+	info "Downloading Jasper Lake FSP from dasharo-blobs..."
+	mkdir -p "$BLOB_DIR"
+	curl -sL -o "$FSP_FD" "$FSP_URL"
+
+	if ! echo "$FSP_SHA256  $FSP_FD" | sha256sum -c --quiet -; then
+		error "FSP.fd checksum mismatch -- refusing to use it"
+		rm -f "$FSP_FD"
+		exit 1
+	fi
+	info "FSP verified: $FSP_FD"
+}
+
+# ── Step 6: Extract blobs from stock ROM ────────────────────────────────
 
 extract_blobs() {
 	cd "$COREBOOT_DIR"
@@ -168,6 +193,7 @@ main() {
 	clone_coreboot
 	build_toolchain "$@"
 	install_board_port
+	download_fsp
 	extract_blobs
 
 	info ""

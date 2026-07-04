@@ -4,7 +4,7 @@
 # Use the coreboot toolchain (not the host compiler)
 # CONFIG_ANY_TOOLCHAIN is not set
 
-# Payload: SeaBIOS for legacy + UEFI compatibility
+# Payload: SeaBIOS (legacy BIOS boot; switch to edk2 if UEFI is needed)
 CONFIG_PAYLOAD_SEABIOS=y
 CONFIG_SEABIOS_STABLE=y
 
@@ -19,16 +19,20 @@ CONFIG_HAVE_ME_BIN=y
 CONFIG_IFD_BIN_PATH="3rdparty/blobs/mainboard/techvision/tvi7309x/descriptor.bin"
 CONFIG_ME_BIN_PATH="3rdparty/blobs/mainboard/techvision/tvi7309x/me.bin"
 
-# TPM 2.0 (Intel PTT - firmware TPM)
-CONFIG_CRB_TPM=y
-CONFIG_HAVE_INTEL_PTT=y
-CONFIG_MAINBOARD_HAS_TPM2=y
+# Intel FSP: JSL FSP is not in the public IntelFsp/FSP repo; use the
+# JasperLake FSP.fd from Dasharo's dasharo-blobs (fetched by
+# setup_coreboot.sh, split into FSP-M/S at build time). Without
+# ADD_FSP_BINARIES the ROM builds but will NOT boot.
+CONFIG_ADD_FSP_BINARIES=y
+CONFIG_FSP_FULL_FD=y
+CONFIG_FSP_FD_PATH="3rdparty/blobs/mainboard/techvision/tvi7309x/Fsp.fd"
+
+# TPM 2.0 (Intel PTT firmware TPM): CRB_TPM, MAINBOARD_HAS_TPM2 and
+# HAVE_INTEL_PTT are promptless symbols selected by the board Kconfig —
+# setting them here would be silently dropped by olddefconfig.
 
 # Flash chip: Winbond W25Q128JVSIQ, 16 MB
 CONFIG_COREBOOT_ROMSIZE_KB_16384=y
-
-# DDR4 SPD size: 512 bytes (full DDR4 SPD; lib/Kconfig defaults to 256 for DDR3)
-CONFIG_DIMM_SPD_SIZE=512
 
 # Debug level (reduce for production)
 CONFIG_DEFAULT_CONSOLE_LOGLEVEL=7

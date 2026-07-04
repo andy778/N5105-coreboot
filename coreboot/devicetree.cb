@@ -12,10 +12,13 @@ chip soc/intel/jasperlake
 	register "tcc_offset" = "20"
 
 	# GPE configuration
-	# Map GPE0 DW0/DW1/DW2 to GPIO groups for wake events
-	register "pmc_gpe0_dw0" = "GPP_G"
-	register "pmc_gpe0_dw1" = "GPP_C"
-	register "pmc_gpe0_dw2" = "GPP_R"
+	# Map GPE0 DW0/DW1/DW2 to the GPIO groups holding our GPI_SCI pads
+	# (GPP_E8, GPP_D16/D17, GPP_F4 in gpio.h; GPD2 has a fixed GPE bit).
+	# Must use the PMC_GPP_* codes from soc/pmc.h, not the GPP_* group
+	# indices from gpio_soc_defs.h — the raw values differ.
+	register "pmc_gpe0_dw0" = "PMC_GPP_E"
+	register "pmc_gpe0_dw1" = "PMC_GPP_D"
+	register "pmc_gpe0_dw2" = "PMC_GPP_F"
 
 	# FSP configuration
 	register "SaGv" = "SaGv_Enabled"
@@ -56,12 +59,11 @@ chip soc/intel/jasperlake
 
 	# HD Audio (00:1f.3) — disabled until hda_verb.c is provided
 
-	# PCIe clock source mapping
-	# Clk0 -> NVMe M.2 (RP1, 00:1c.0)
-	# Clk1 -> I226-V LAN1 (RP5, 00:1c.4)
-	# Clk2 -> I226-V LAN2 (RP6, 00:1c.5)
-	# Clk3 -> I226-V LAN3 (RP7, 00:1c.6)
-	# Clk4 -> I226-V LAN4 (RP8, 00:1c.7)
+	# PCIe clock sources: probable routing is Clk0 -> NVMe (RP1) and
+	# Clk1-4 -> I226-V LAN1-4 (RP5-RP8), but until that is confirmed
+	# on hardware all used clocks are set to PCIE_CLK_FREE (always
+	# running, CLKREQ ignored). Safe for bring-up at the cost of some
+	# idle power; map to root ports once first boot works.
 	register "PcieClkSrcUsage[0]" = "PCIE_CLK_FREE"
 	register "PcieClkSrcUsage[1]" = "PCIE_CLK_FREE"
 	register "PcieClkSrcUsage[2]" = "PCIE_CLK_FREE"

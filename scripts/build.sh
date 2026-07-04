@@ -35,31 +35,9 @@ fi
 
 cd "$COREBOOT_DIR"
 
-# Ensure board port is up-to-date
+# Ensure board port is up-to-date (shared logic with setup_coreboot.sh)
 info "Syncing board port files..."
-mkdir -p "$BOARD_DEST"
-# Copy board-specific files (not Kconfig - handled separately)
-cp -v "$BOARD_SRC"/*.c "$BOARD_SRC"/*.h "$BOARD_SRC"/*.cb \
-      "$BOARD_SRC"/*.asl \
-      "$BOARD_SRC"/Kconfig.name \
-      "$BOARD_SRC"/Makefile.mk "$BOARD_DEST/" 2>/dev/null || true
-# Copy binary blobs referenced by Makefile.mk (VBT)
-find "$BOARD_SRC" -maxdepth 1 -name '*.vbt' -exec cp -v {} "$BOARD_DEST/" \;
-# Copy spd/ subdirectory (SPD_SOURCES hex files; SPD_SOURCES list lives in board Makefile.mk)
-if [ -d "$BOARD_SRC/spd" ]; then
-    mkdir -p "$BOARD_DEST/spd"
-    cp -v "$BOARD_SRC/spd"/*.spd.hex "$BOARD_DEST/spd/" 2>/dev/null
-fi
-# Kconfig layout:
-#   coreboot/Kconfig             -> src/mainboard/techvision/Kconfig  (vendor)
-#   coreboot/vendor.Kconfig.name -> src/mainboard/techvision/Kconfig.name  (vendor menu)
-#   coreboot/board.Kconfig       -> src/mainboard/techvision/tvi7309x/Kconfig  (board)
-#   coreboot/Kconfig.name        -> src/mainboard/techvision/tvi7309x/Kconfig.name  (board menu)
-VENDOR_DIR="$(dirname "$BOARD_DEST")"
-mkdir -p "$VENDOR_DIR"
-cp -v "$BOARD_SRC/Kconfig"             "$VENDOR_DIR/Kconfig"
-cp -v "$BOARD_SRC/vendor.Kconfig.name" "$VENDOR_DIR/Kconfig.name"
-cp -v "$BOARD_SRC/board.Kconfig"       "$BOARD_DEST/Kconfig"
+"$SCRIPT_DIR/sync_board.sh"
 
 # Handle subcommands
 case "${1:-build}" in
@@ -100,9 +78,13 @@ if [ ! -f "$BLOB_DIR/me.bin" ]; then
 	warn "Missing: $BLOB_DIR/me.bin"
 	MISSING_BLOBS=1
 fi
+if [ ! -f "$BLOB_DIR/Fsp.fd" ]; then
+	warn "Missing: $BLOB_DIR/Fsp.fd (Jasper Lake FSP -- ROM would not boot without it)"
+	MISSING_BLOBS=1
+fi
 
 if [ "$MISSING_BLOBS" -eq 1 ]; then
-	error "Intel blobs are missing. Extract them from the stock ROM:"
+	error "Intel blobs are missing. IFD/ME come from the stock ROM:"
 	echo ""
 	echo "  make -C util/ifdtool"
 	echo "  util/ifdtool/ifdtool -x $PROJECT_DIR/roms/oldbios.bin"
@@ -110,7 +92,8 @@ if [ "$MISSING_BLOBS" -eq 1 ]; then
 	echo "  mv flashregion_0_flashdescriptor.bin $BLOB_DIR/descriptor.bin"
 	echo "  mv flashregion_2_intel_me.bin $BLOB_DIR/me.bin"
 	echo ""
-	echo "Or re-run ./scripts/setup_coreboot.sh to extract automatically."
+	echo "Fsp.fd is downloaded from dasharo-blobs."
+	echo "Re-run ./scripts/setup_coreboot.sh to fetch/extract everything automatically."
 	exit 1
 fi
 
@@ -119,6 +102,14 @@ fi
 # If existing .config isn't for our board, wipe it
 if [ -f .config ] && ! grep -q "^CONFIG_BOARD_TECHVISION_TVI7309X=y" .config; then
 	warn ".config is not for TVI7309X; regenerating from defconfig"
+	rm -f .config
+fi
+
+# If the defconfig changed since .config was generated, regenerate so
+# defconfig updates actually take effect (menuconfig tweaks are lost --
+# run `make savedefconfig` and update coreboot/defconfig to keep them)
+if [ -f .config ] && [ "$DEFCONFIG" -nt .config ]; then
+	warn "defconfig is newer than .config; regenerating"
 	rm -f .config
 fi
 

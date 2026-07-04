@@ -3,17 +3,15 @@
 /*
  * Romstage memory init for BKHD 1338NP-12 / Techvision TVI7309X B0
  *
- * This board has 2x DDR4 SO-DIMM slots populated:
- *   Channel A: Kingston 8GB DDR4-2667 (9905711-053.A00G)
- *   Channel B: Samsung 8GB DDR4-2667 (M471A1K43CB1-CTD)
+ * This board has 2x DDR4 SO-DIMM slots (one per channel), populated with:
+ *   Channel A (slot at SMBus 0x50): Kingston 8GB DDR4-2667 (9905711-053.A00G)
+ *   Channel B (slot at SMBus 0x52): Samsung 8GB DDR4-2667 (M471A1K43CB1-CTD)
  *
- * Memory training parameters are configured for DDR4 SO-DIMM.
- * SPD data is read from CBFS (dumped from the DIMMs).
+ * SPD is read from the DIMMs over SMBus at runtime, so each channel
+ * trains with its own module's timings and DIMM swaps keep working.
  *
- * NOTE: The DQ/DQS maps below are initial estimates based on the
- * Protectli vault_jsl reference. They may need adjustment based on
- * the actual board routing. If memory training fails, these maps
- * are the first thing to investigate.
+ * dq_map/dqs_map are intentionally not set: per soc/meminit.h they are
+ * only consumed for LPDDR4 designs and are ignored for DDR4.
  */
 
 #include <console/console.h>
@@ -24,36 +22,10 @@
 #include "gpio.h"
 
 static const struct mb_cfg memcfg_cfg = {
-
-	/*
-	 * DQ byte map: maps each byte lane to physical DQ pins.
-	 * This is board-layout dependent. Starting with identity map
-	 * matching the Protectli vault_jsl reference board.
-	 */
-	.dq_map[DDR_CH0] = {
-		{0xf, 0xf0},
-		{0xf, 0xf0},
-		{0xff, 0x0},
-		{0x0, 0x0},
-		{0x0, 0x0},
-		{0x0, 0x0}
-	},
-	.dq_map[DDR_CH1] = {
-		{0xf, 0xf0},
-		{0xf, 0xf0},
-		{0xff, 0x0},
-		{0x0, 0x0},
-		{0x0, 0x0},
-		{0x0, 0x0}
-	},
-
-	/* DQS byte map: maps strobe signals to byte lanes */
-	.dqs_map[DDR_CH0] = {0, 1, 2, 3, 4, 5, 6, 7},
-	.dqs_map[DDR_CH1] = {0, 1, 2, 3, 4, 5, 6, 7},
-
 	/*
 	 * RCOMP resistor and target values for DDR4.
-	 * These are typical values for Jasper Lake SO-DIMM configurations.
+	 * Verified identical to the Protectli vault_jsl (Dasharo)
+	 * reference board (DDR4 SO-DIMM on Jasper Lake).
 	 */
 	.rcomp_resistor = {100, 100, 100},
 	.rcomp_targets = {60, 40, 30, 20, 30},
@@ -61,20 +33,22 @@ static const struct mb_cfg memcfg_cfg = {
 	/* Enable Early Command Training */
 	.ect = 1,
 
-	/* Board type: ULT/ULX (mobile/embedded) */
+	/* Board type: ULT/ULX (mobile/embedded), as on vault_jsl */
 	.UserBd = BOARD_TYPE_ULT_ULX,
 };
 
 void mainboard_memory_init_params(FSPM_UPD *memupd)
 {
+	/*
+	 * SPD SMBus addresses (8-bit): index 0/1 = channel 0 DIMM 0/1,
+	 * index 2/3 = channel 1 DIMM 0/1. One slot per channel here.
+	 */
 	const struct spd_info board_spd_info = {
-		.read_type = READ_SPD_CBFS,
-		.spd_spec.spd_index = 0,
+		.read_type = READ_SMBUS,
+		.spd_spec.spd_smbus_address = {0xa0, 0x00, 0xa4, 0x00},
 	};
 
 	memcfg_init(&memupd->FspmConfig, &memcfg_cfg, &board_spd_info, false);
-
-	/* Both SO-DIMM slots are populated on this board */
 
 	/* Configure GPIO pads for memory init */
 	gpio_configure_pads(gpio_table, ARRAY_SIZE(gpio_table));
